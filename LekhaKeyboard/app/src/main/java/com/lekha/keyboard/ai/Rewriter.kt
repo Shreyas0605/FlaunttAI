@@ -21,7 +21,7 @@ object Rewriter {
 
     private const val PREFS = "lekha_prefs"
     private const val KEY_API = "gemini_api_key"
-    private const val MODEL = "gemini-2.5-flash"
+    private const val MODEL = "gemini-3.5-flash"
     private const val ENDPOINT =
         "https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent"
 

@@ -10,13 +10,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Talks to Google's Gemini API. Two responsibilities:
- *   - listModels(): ask Google exactly which models THIS key can use with generateContent,
- *     so the app never guesses a model name.
- *   - rewrite(): produce up to 3 corrected rewrites using the chosen model.
+ * Talks to Google's Gemini API. Three jobs:
+ *   - listModels(): ask Google which models THIS key can use with generateContent
+ *     (so the app never guesses a model name).
+ *   - rewrite(): up to 3 corrected rewrites of the message.
+ *   - rewriteMore(): 3 DIFFERENT rewrites, excluding ones already shown (the "More" button).
  *
- * The API key and the chosen model are stored only on this device.
- * Uses built-in HttpURLConnection + org.json (no SDK, no extra dependency).
+ * Key and chosen model are stored only on-device. Built-in HttpURLConnection + org.json.
  */
 object Rewriter {
 
@@ -50,10 +50,7 @@ object Rewriter {
 
     // ---- operations ----
 
-    /**
-     * Returns the models this key can call with generateContent (e.g. "gemini-2.5-flash"),
-     * flash/text models first. Empty list on failure (see lastError()). Doubles as a key test.
-     */
+    /** Models this key can call with generateContent (flash first). Empty on failure. */
     suspend fun listModels(context: Context, key: String): List<String> =
         withContext(Dispatchers.IO) {
             val (code, body) = getRaw("$BASE/models", key)
@@ -62,24 +59,28 @@ object Rewriter {
             parseModels(body)
         }
 
-    /** Up to 3 corrected rewrites using the stored model, or empty on failure. */
+    /** Up to 3 corrected rewrites using the stored model. */
     suspend fun rewrite(context: Context, text: String): List<String> =
+        generate(context, text, exclude = emptyList(), temperature = 0.4)
+
+    /** 3 different rewrites, avoiding the ones already shown. */
+    suspend fun rewriteMore(context: Context, text: String, exclude: List<String>): List<String> =
+        generate(context, text, exclude = exclude, temperature = 0.95)
+
+    private suspend fun generate(context: Context, text: String, exclude: List<String>, temperature: Double): List<String> =
         withContext(Dispatchers.IO) {
             val key = getApiKey(context) ?: run { lastError = "No API key set"; return@withContext emptyList() }
             val url = "$BASE/models/${getModel(context)}:generateContent"
-            val (code, body) = postRaw(url, key, buildRewriteRequest(text))
+            val (code, body) = postRaw(url, key, buildRewriteRequest(text, exclude, temperature))
             if (code !in 200..299) { lastError = parseError(code, body); return@withContext emptyList() }
             lastError = null
-            parseCandidates(body, text)
+            parseCandidates(body, text, exclude)
         }
 
     // ---- HTTP ----
 
-    private fun getRaw(urlStr: String, key: String): Pair<Int, String> =
-        request(urlStr, key, method = "GET", payload = null)
-
-    private fun postRaw(urlStr: String, key: String, payload: String): Pair<Int, String> =
-        request(urlStr, key, method = "POST", payload = payload)
+    private fun getRaw(url: String, key: String) = request(url, key, "GET", null)
+    private fun postRaw(url: String, key: String, payload: String) = request(url, key, "POST", payload)
 
     private fun request(urlStr: String, key: String, method: String, payload: String?): Pair<Int, String> {
         var conn: HttpURLConnection? = null
@@ -110,19 +111,25 @@ object Rewriter {
         }
     }
 
-    // ---- request/response bodies ----
+    // ---- request / response bodies ----
 
-    private fun buildRewriteRequest(text: String): String {
-        val prompt =
-            "Rewrite the message below in correct, natural, friendly English for someone " +
-            "whose first language is Kannada. Keep the same meaning and a warm, casual tone. " +
-            "Do not add new facts. Return a JSON array of exactly 3 rewritten options as plain " +
-            "strings, and nothing else.\n\nMessage: \"" + text + "\""
+    private fun buildRewriteRequest(text: String, exclude: List<String>, temperature: Double): String {
+        val sb = StringBuilder()
+        sb.append("Rewrite the message below in correct, natural, friendly English for someone ")
+        sb.append("whose first language is Kannada. Keep the same meaning and a warm, casual tone. ")
+        sb.append("Do not add new facts. ")
+        if (exclude.isNotEmpty()) {
+            sb.append("Give 3 options that are clearly DIFFERENT in wording from these already-shown ones:\n")
+            for (e in exclude.take(9)) sb.append("- ").append(e).append("\n")
+        }
+        sb.append("Return a JSON array of exactly 3 rewritten options as plain strings, and nothing else.\n\n")
+        sb.append("Message: \"").append(text).append("\"")
+
         val userTurn = JSONObject()
             .put("role", "user")
-            .put("parts", JSONArray().put(JSONObject().put("text", prompt)))
+            .put("parts", JSONArray().put(JSONObject().put("text", sb.toString())))
         val genCfg = JSONObject()
-            .put("temperature", 0.4)
+            .put("temperature", temperature)
             .put("maxOutputTokens", 512)
             .put("responseMimeType", "application/json")
         return JSONObject()
@@ -144,7 +151,6 @@ object Rewriter {
             val name = m.optString("name").removePrefix("models/")
             if (name.isNotBlank()) out.add(name)
         }
-        // gemini-* first, flash before others, then alphabetical
         out.sortedWith(compareBy({ !it.startsWith("gemini") }, { !it.contains("flash") }, { it }))
     } catch (_: Throwable) { emptyList() }
 
@@ -163,7 +169,7 @@ object Rewriter {
         try { JSONObject(body).optJSONObject("error")?.optString("message")?.takeIf { it.isNotBlank() } }
         catch (_: Throwable) { null }
 
-    private fun parseCandidates(raw: String, original: String): List<String> {
+    private fun parseCandidates(raw: String, original: String, exclude: List<String>): List<String> {
         val text = try {
             val obj = JSONObject(raw)
             val candidates = obj.optJSONArray("candidates")
@@ -183,10 +189,10 @@ object Rewriter {
         val options = parseJsonArray(text) ?: parseNumbered(text)
         val cleaned = options
             .map { it.trim().trim('"', '\u201C', '\u201D', '*', '`').trim() }
-            .filter { it.isNotEmpty() && !it.equals(original, ignoreCase = true) }
+            .filter { it.isNotEmpty() && !it.equals(original, ignoreCase = true) && exclude.none { e -> e.equals(it, ignoreCase = true) } }
             .distinctBy { it.lowercase() }
             .take(3)
-        if (cleaned.isEmpty()) lastError = "Gemini returned nothing usable."
+        if (cleaned.isEmpty()) lastError = "Gemini returned nothing new."
         return cleaned
     }
 

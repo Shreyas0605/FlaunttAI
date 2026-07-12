@@ -13,6 +13,8 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -29,34 +31,32 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * The Lekha keyboard. Two layers of help:
- *   - Instant, offline rule fixes shown as a green suggestion while typing (no network).
- *   - Full AI rewrites via Gemini when the user taps the sparkle, shown as 2-3 tappable
- *     options that replace the whole message. Requires an API key set in the app.
- * Built from plain Views for a reliable build; the engine and Rewriter are UI-agnostic.
+ * The Lekha keyboard service. Hosts a custom KeyboardView for typing and a top bar with
+ *   - instant offline rule fixes (green suggestion),
+ *   - a "Why?" explanation,
+ *   - a sparkle for Gemini rewrites (2-3 tappable options, plus "More options").
+ * The service owns the InputConnection; the KeyboardView just reports key events.
  */
-class LekhaImeService : InputMethodService() {
+class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     private val engine = RuleEngine()
 
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var aiJob: Job? = null
     private var aiBusy = false
+    private var aiSourceText: String? = null
+    private val aiSeen = mutableListOf<String>()
 
     private lateinit var suggestionBtn: Button
     private lateinit var whyBtn: Button
-    private lateinit var aiButton: Button
+    private lateinit var aiButton: ImageButton
     private lateinit var explanationTv: TextView
     private lateinit var aiPanel: LinearLayout
-    private lateinit var keysContainer: LinearLayout
-    private var shiftButton: Button? = null
+    private lateinit var keyboardView: KeyboardView
 
     private var current: Correction? = null
     private var explanationShown = false
-    private var shiftOn = true
     private var allowProcessing = true
-
-    private val letterRows = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm")
 
     // ---------------------------------------------------------------- view tree
 
@@ -85,8 +85,12 @@ class LekhaImeService : InputMethodService() {
         }
         root.addView(explanationTv)
 
-        keysContainer = buildKeyboard()
-        root.addView(keysContainer)
+        keyboardView = KeyboardView(this).apply {
+            listener = this@LekhaImeService
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+        }
+        root.addView(keyboardView)
+
         clearSuggestion()
         return root
     }
@@ -113,11 +117,14 @@ class LekhaImeService : InputMethodService() {
             textSize = 15f
             setOnClickListener { toggleExplanation() }
         }
-        aiButton = Button(this).apply {
-            layoutParams = LinearLayout.LayoutParams(WRAP_CONTENT, MATCH_PARENT)
-            isAllCaps = false
-            text = getString(R.string.ai_button)
-            textSize = 18f
+        aiButton = ImageButton(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(52), MATCH_PARENT)
+            setImageResource(R.drawable.ic_ai)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setColorFilter(color(R.color.kb_accent))
+            setBackgroundColor(color(R.color.kb_strip_background))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            contentDescription = getString(R.string.ai_button_desc)
             setOnClickListener { onAiTapped() }
         }
         strip.addView(suggestionBtn)
@@ -126,103 +133,39 @@ class LekhaImeService : InputMethodService() {
         return strip
     }
 
-    private fun buildKeyboard(): LinearLayout {
-        val kb = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(2), dp(4), dp(2), dp(6))
-        }
-        for ((idx, row) in letterRows.withIndex()) {
-            val rowLayout = keyRow()
-            if (idx == 2) rowLayout.addView(shiftKey())
-            for (ch in row) rowLayout.addView(charKey(ch.toString()))
-            if (idx == 2) rowLayout.addView(backspaceKey())
-            kb.addView(rowLayout)
-        }
-        val bottom = keyRow()
-        bottom.addView(symbolKey("."))
-        bottom.addView(symbolKey(","))
-        bottom.addView(spaceKey())
-        bottom.addView(symbolKey("?"))
-        bottom.addView(enterKey())
-        kb.addView(bottom)
-        return kb
+    // ---------------------------------------------------------------- KeyboardView.Listener
+
+    override fun onText(text: String) {
+        currentInputConnection?.commitText(text, 1)
+        afterInput()
     }
 
-    private fun keyRow() = LinearLayout(this).apply {
-        orientation = LinearLayout.HORIZONTAL
-        layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(56))
-        gravity = Gravity.CENTER
+    override fun onBackspace() {
+        currentInputConnection?.deleteSurroundingText(1, 0)
+        afterInput()
     }
 
-    private fun baseKey(label: String, weight: Float, bg: Int): Button = Button(this).apply {
-        layoutParams = LinearLayout.LayoutParams(0, MATCH_PARENT, weight)
-            .apply { setMargins(dp(2), dp(2), dp(2), dp(2)) }
-        text = label
-        isAllCaps = false
-        textSize = 19f
-        setTextColor(color(R.color.kb_key_text))
-        setBackgroundColor(bg)
+    override fun onDeleteWord() {
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(120, 0)?.toString() ?: ""
+        if (before.isEmpty()) return
+        var i = before.length
+        while (i > 0 && before[i - 1] == ' ') i--
+        while (i > 0 && before[i - 1] != ' ' && before[i - 1] != '\n') i--
+        val del = before.length - i
+        ic.deleteSurroundingText(if (del > 0) del else 1, 0)
+        afterInput()
     }
 
-    private fun charKey(ch: String): Button {
-        val key = baseKey(ch, 1f, color(R.color.kb_key))
-        key.setOnClickListener {
-            commit(if (shiftOn) ch.uppercase() else ch)
-            if (shiftOn) { shiftOn = false; updateShiftVisual() }
-            afterInput()
-        }
-        return key
-    }
-
-    private fun shiftKey(): Button {
-        val key = baseKey("\u21E7", 1.5f, color(R.color.kb_special))
-        shiftButton = key
-        updateShiftVisual()
-        key.setOnClickListener { shiftOn = !shiftOn; updateShiftVisual() }
-        return key
-    }
-
-    private fun updateShiftVisual() {
-        shiftButton?.setBackgroundColor(color(if (shiftOn) R.color.kb_accent else R.color.kb_special))
-        shiftButton?.setTextColor(color(if (shiftOn) R.color.kb_accent_text else R.color.kb_key_text))
-    }
-
-    private fun backspaceKey(): Button {
-        val key = baseKey("\u232B", 1.5f, color(R.color.kb_special))
-        key.setOnClickListener {
-            currentInputConnection?.deleteSurroundingText(1, 0)
-            afterInput()
-        }
-        return key
-    }
-
-    private fun spaceKey(): Button {
-        val key = baseKey("space", 4f, color(R.color.kb_key))
-        key.setOnClickListener { commit(" "); afterInput() }
-        return key
-    }
-
-    private fun symbolKey(sym: String): Button {
-        val key = baseKey(sym, 1f, color(R.color.kb_special))
-        key.setOnClickListener { commit(sym); afterInput() }
-        return key
-    }
-
-    private fun enterKey(): Button {
-        val key = baseKey("\u21B5", 1.5f, color(R.color.kb_special))
-        key.setOnClickListener { commit("\n"); afterInput() }
-        return key
+    override fun onEnter() {
+        currentInputConnection?.commitText("\n", 1)
+        afterInput()
     }
 
     // ---------------------------------------------------------------- input flow
 
-    private fun commit(text: String) {
-        currentInputConnection?.commitText(text, 1)
-        vibrate()
-    }
-
     private fun afterInput() {
-        if (aiPanel.visibility == View.VISIBLE && !aiBusy) hideAiPanel()
+        if (::aiPanel.isInitialized && aiPanel.visibility == View.VISIBLE && !aiBusy) hideAiPanel()
         refreshAutoCap()
         analyze()
     }
@@ -230,14 +173,12 @@ class LekhaImeService : InputMethodService() {
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         allowProcessing = attribute?.let { isProcessable(it) } ?: true
-        shiftOn = true
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         if (::aiPanel.isInitialized) hideAiPanel()
         if (::suggestionBtn.isInitialized) clearSuggestion()
-        updateShiftVisual()
         refreshAutoCap()
         analyze()
     }
@@ -248,12 +189,13 @@ class LekhaImeService : InputMethodService() {
     }
 
     private fun refreshAutoCap() {
+        if (!::keyboardView.isInitialized) return
         val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString() ?: ""
         val trimmed = before.trimEnd()
         val auto = trimmed.isEmpty() ||
             trimmed.endsWith(".") || trimmed.endsWith("?") ||
             trimmed.endsWith("!") || before.endsWith("\n")
-        if (auto != shiftOn) { shiftOn = auto; updateShiftVisual() }
+        keyboardView.setAutoCaps(auto)
     }
 
     private fun analyze() {
@@ -344,10 +286,25 @@ class LekhaImeService : InputMethodService() {
         val full = (before + after).trim()
         if (full.length < 2) { showAiMessage(getString(R.string.ai_type_first), showOpenApp = false); return }
 
+        aiSourceText = full
+        aiSeen.clear()
+        runRewrite(more = false)
+    }
+
+    private fun onAiMore() {
+        if (aiBusy || aiSourceText == null) return
+        runRewrite(more = true)
+    }
+
+    private fun runRewrite(more: Boolean) {
+        val src = aiSourceText ?: return
         aiBusy = true
         showAiThinking()
         aiJob = uiScope.launch {
-            val options = try { Rewriter.rewrite(this@LekhaImeService, full) } catch (t: Throwable) { emptyList() }
+            val options = try {
+                if (more) Rewriter.rewriteMore(this@LekhaImeService, src, aiSeen.toList())
+                else Rewriter.rewrite(this@LekhaImeService, src)
+            } catch (t: Throwable) { emptyList() }
             aiBusy = false
             if (options.isEmpty()) showAiMessage(Rewriter.lastError() ?: getString(R.string.ai_failed), showOpenApp = false)
             else showAiOptions(options)
@@ -368,6 +325,8 @@ class LekhaImeService : InputMethodService() {
 
     private fun showAiOptions(options: List<String>) {
         explanationTv.visibility = View.GONE
+        for (o in options) if (aiSeen.none { it.equals(o, ignoreCase = true) }) aiSeen.add(o)
+
         aiPanel.removeAllViews()
         aiPanel.addView(TextView(this).apply {
             text = getString(R.string.ai_tap_hint)
@@ -378,7 +337,13 @@ class LekhaImeService : InputMethodService() {
         for (opt in options) {
             aiPanel.addView(optionButton(opt).apply { setOnClickListener { applyRewrite(opt) } })
         }
-        aiPanel.addView(smallButton(getString(R.string.ai_close), color(R.color.kb_special), color(R.color.kb_key_text)) { hideAiPanel() })
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+        }
+        row.addView(smallButton(getString(R.string.ai_more), color(R.color.kb_special), color(R.color.kb_key_text), 1f) { onAiMore() })
+        row.addView(smallButton(getString(R.string.ai_close), color(R.color.kb_special), color(R.color.kb_key_text), 1f) { hideAiPanel() })
+        aiPanel.addView(row)
         aiPanel.visibility = View.VISIBLE
     }
 
@@ -393,10 +358,15 @@ class LekhaImeService : InputMethodService() {
             setPadding(dp(16), dp(12), dp(16), dp(10))
             setTextColor(color(R.color.kb_key_text))
         })
-        if (showOpenApp) {
-            aiPanel.addView(smallButton(getString(R.string.ai_open_app), color(R.color.kb_accent), color(R.color.kb_accent_text)) { openApp() })
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
         }
-        aiPanel.addView(smallButton(getString(R.string.ai_close), color(R.color.kb_special), color(R.color.kb_key_text)) { hideAiPanel() })
+        if (showOpenApp) {
+            row.addView(smallButton(getString(R.string.ai_open_app), color(R.color.kb_accent), color(R.color.kb_accent_text), 1f) { openApp() })
+        }
+        row.addView(smallButton(getString(R.string.ai_close), color(R.color.kb_special), color(R.color.kb_key_text), 1f) { hideAiPanel() })
+        aiPanel.addView(row)
         aiPanel.visibility = View.VISIBLE
     }
 
@@ -414,8 +384,8 @@ class LekhaImeService : InputMethodService() {
         this.text = text
     }
 
-    private fun smallButton(label: String, bg: Int, fg: Int, onClick: () -> Unit): Button = Button(this).apply {
-        layoutParams = LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+    private fun smallButton(label: String, bg: Int, fg: Int, weight: Float, onClick: () -> Unit): Button = Button(this).apply {
+        layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, weight)
             .apply { setMargins(dp(6), dp(2), dp(6), dp(6)) }
         isAllCaps = false
         textSize = 14f

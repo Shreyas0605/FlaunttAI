@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lekha</string>
+    <string name="subtype_en">English</string>
+    <string name="why">Why?</string>
+    <string name="hint_type">Type a message\u2026</string>
+    <string name="onboarding_title">Lekha \u2014 English helper keyboard</string>
+    <string name="onboarding_privacy">Basic fixes (capitals, apostrophes, common grammar) work offline. Tapping \u2728 for full rewrites uses Google\'s Gemini AI, so that text is sent to Google.</string>
+    <string name="step_enable">1.  Enable Lekha Keyboard</string>
+    <string name="step_switch">2.  Switch to Lekha</string>
+    <string name="try_label">Try it here (type: he don\'t know)</string>
+    <string name="try_hint">Start typing\u2026</string>
+
+    <!-- Gemini API key setup -->
+    <string name="ai_title">AI rewrites (Gemini)</string>
+    <string name="ai_instructions">To turn on \u2728 AI rewrites:\n\n1. Go to aistudio.google.com and sign in with a Google account.\n2. Open \u201CGet API key\u201D and create a free key (starts with AIza\u2026).\n3. Paste it below and tap \u201CTest &amp; save\u201D. The app asks Google which models your key can use and lists them \u2014 tap one to use.\n\nThe key and chosen model are stored only on this phone.</string>
+    <string name="key_hint">Paste Gemini API key (AIza\u2026)</string>
+    <string name="btn_save_key">Save only</string>
+    <string name="btn_test_key">Test &amp; save</string>
+    <string name="key_present">Status: API key is set \u2713</string>
+    <string name="key_present_model">Status: key set \u2713 (using %1$s)</string>
+    <string name="key_absent">Status: no API key yet</string>
+    <string name="key_empty">Please paste a key first.</string>
+    <string name="key_saved">Saved.</string>
+    <string name="key_testing">Checking your key with Google\u2026</string>
+    <string name="key_ok_count">Key works \u2713  %1$d compatible model(s) found.</string>
+    <string name="key_fail">Failed: %1$s</string>
+    <string name="models_label">Compatible models for your key (tap to choose):</string>
+    <string name="model_now">Using model: %1$s</string>
+
+    <!-- AI on the keyboard -->
+    <string name="ai_button">\u2728</string>
+    <string name="ai_thinking">\u2728 Thinking\u2026</string>
+    <string name="ai_tap_hint">Tap a version to use it</string>
+    <string name="ai_close">Close</string>
+    <string name="ai_open_app">Open Lekha app</string>
+    <string name="ai_need_key">Add your Gemini API key in the Lekha app first.</string>
+    <string name="ai_type_first">Type a message first, then tap \u2728.</string>
+    <string name="ai_failed">Couldn\'t rewrite this. Please try again.</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#1B5E20</color>
+    <color name="ic_launcher_background">#1B5E20</color>
+
+    <color name="kb_background">#ECEFF1</color>
+    <color name="kb_key">#FFFFFF</color>
+    <color name="kb_special">#CFD8DC</color>
+    <color name="kb_key_text">#212121</color>
+    <color name="kb_strip_background">#FFFFFF</color>
+    <color name="kb_hint_text">#9E9E9E</color>
+    <color name="kb_accent">#2E7D32</color>
+    <color name="kb_accent_text">#FFFFFF</color>
+</resources>

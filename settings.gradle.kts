@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Lekha"
+rootProject.name = "Fluent AI"
 include(":app")

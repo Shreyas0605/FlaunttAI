@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Lekha</string>
+    <string name="app_name">Fluent AI</string>
     <string name="subtype_en">English</string>
     <string name="why">Why?</string>
     <string name="hint_type">Type a message\u2026</string>
-    <string name="onboarding_title">Lekha \u2014 English helper keyboard</string>
+    <string name="onboarding_title">Fluent AI \u2014 English helper keyboard</string>
     <string name="onboarding_privacy">Basic fixes (capitals, apostrophes, common grammar) work offline. Tapping \u2728 for full rewrites uses Google\'s Gemini AI, so that text is sent to Google.</string>
-    <string name="step_enable">1.  Enable Lekha Keyboard</string>
-    <string name="step_switch">2.  Switch to Lekha</string>
+    <string name="step_enable">1.  Enable Fluent AI Keyboard</string>
+    <string name="step_switch">2.  Switch to Fluent AI</string>
     <string name="try_label">Try it here (type: he don\'t know)</string>
     <string name="try_hint">Start typing\u2026</string>
 
@@ -31,12 +31,12 @@
     <!-- AI on the keyboard -->
     <string name="ai_button">\u2728</string>
     <string name="ai_button_desc">AI rewrite</string>
-    <string name="ai_thinking">\u2728 Thinking\u2026</string>
+    <string name="ai_thinking">Thinking\u2026</string>
     <string name="ai_tap_hint">Tap a version to use it</string>
     <string name="ai_more">More options</string>
     <string name="ai_close">Close</string>
-    <string name="ai_open_app">Open Lekha app</string>
-    <string name="ai_need_key">Add your Gemini API key in the Lekha app first.</string>
+    <string name="ai_open_app">Open Fluent AI app</string>
+    <string name="ai_need_key">Add your Gemini API key in the Fluent AI app first.</string>
     <string name="ai_type_first">Type a message first, then tap \u2728.</string>
     <string name="ai_failed">Couldn\'t rewrite this. Please try again.</string>
 </resources>

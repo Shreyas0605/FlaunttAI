@@ -249,7 +249,7 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
     private fun clearSuggestion() {
         current = null
         explanationShown = false
-        suggestionBtn.text = getString(R.string.hint_type)
+        suggestionBtn.text = ""
         suggestionBtn.setBackgroundColor(color(R.color.kb_strip_background))
         suggestionBtn.setTextColor(color(R.color.kb_hint_text))
         whyBtn.visibility = View.INVISIBLE

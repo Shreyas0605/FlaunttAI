@@ -83,32 +83,51 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
     private var allowProcessing = true
     private var panelOpen = false
 
-    // Word prediction map (from the HTML)
-    private val wordSets = mapOf(
-        ""  to listOf("sure", "okay", "thanks"),
-        "i" to listOf("I'll", "I'm", "I've"),
-        "a" to listOf("about", "are", "after"),
-        "b" to listOf("be", "but", "because"),
-        "c" to listOf("can", "could", "come"),
-        "d" to listOf("do", "did", "don't"),
-        "e" to listOf("even", "every", "enough"),
-        "f" to listOf("for", "from", "fine"),
-        "g" to listOf("good", "great", "got"),
-        "h" to listOf("have", "has", "hey"),
-        "j" to listOf("just", "join", "job"),
-        "k" to listOf("know", "keep", "kind"),
-        "l" to listOf("like", "let", "later"),
-        "m" to listOf("me", "my", "might"),
-        "n" to listOf("no", "not", "need"),
-        "o" to listOf("okay", "of", "on"),
-        "p" to listOf("please", "pretty", "plan"),
-        "r" to listOf("right", "really", "ready"),
-        "s" to listOf("so", "some", "sure"),
-        "t" to listOf("the", "that", "this"),
-        "u" to listOf("up", "us", "until"),
-        "w" to listOf("with", "we", "when"),
-        "y" to listOf("yes", "you", "yet")
-    )
+    // ── Word prediction – frequency-ranked common words ─────────────────────
+    // 500 most common English words sorted roughly by frequency.
+    // Predictions match the prefix the user is currently typing, just like a
+    // normal keyboard (Gboard, SwiftKey, etc.).
+    private val wordBank = listOf(
+        "the","I","to","and","a","is","it","you","that","of","in","was","for","on","are",
+        "but","not","with","he","as","do","at","this","his","by","from","they","be","have",
+        "or","one","had","all","we","can","her","was","there","been","if","has","will",
+        "no","more","when","who","what","so","up","its","about","into","than","them","could",
+        "other","out","some","time","very","your","would","make","like","just","over","such",
+        "how","after","know","take","come","many","well","only","also","back","use","two",
+        "want","way","look","first","new","day","because","get","people","did","got","made",
+        "find","long","here","thing","see","him","going","right","still","own","say","left",
+        "should","call","need","too","any","each","tell","help","yes","last","most","never",
+        "big","us","old","really","good","great","much","then","same","around","another",
+        "think","down","between","work","life","before","being","under","even","our","where",
+        "now","go","me","she","my","did","said","does","always","why","off","let","put",
+        "again","might","both","every","few","must","those","keep","while","home","start",
+        "point","school","hand","high","part","small","end","went","world","next","came",
+        "show","place","asked","man","thought","why","something","through","went",
+        "year","run","away","live","room","head","set","own","read","far","end",
+        "number","change","play","move","try","line","turn","state","late","give",
+        "close","open","seem","together","group","often","may","large","old","real",
+        "side","enough","almost","water","house","city","above","family","young",
+        "leave","area","already","hard","money","table","please","stop","bring","along",
+        "sure","okay","thanks","hello","sorry","maybe","yeah","alright","fine","done",
+        "tomorrow","today","tonight","morning","afternoon","evening","night","because",
+        "though","actually","probably","definitely","already","anything","everything",
+        "nothing","someone","everyone","something","always","never","sometimes",
+        "about","above","across","after","against","along","among","around","before",
+        "behind","below","beneath","beside","between","beyond","during","except",
+        "inside","outside","since","through","toward","under","until","upon","within",
+        "without","however","therefore","meanwhile","although","whenever","wherever",
+        "whoever","whatever","beautiful","important","different","interesting",
+        "available","possible","necessary","wonderful","difficult","certainly",
+        "happy","love","friend","family","work","school","phone","message","meeting",
+        "lunch","dinner","breakfast","coming","going","leaving","looking","waiting",
+        "running","talking","working","playing","writing","reading","watching",
+        "listening","thinking","feeling","trying","getting","making","taking",
+        "saying","asking","telling","knowing","seeing","doing","being","having",
+        "I'm","I'll","I've","I'd","don't","can't","won't","isn't","aren't","wasn't",
+        "weren't","hasn't","haven't","hadn't","doesn't","didn't","couldn't","shouldn't",
+        "wouldn't","that's","it's","what's","there's","here's","let's","he's","she's",
+        "we're","they're","you're","we've","they've","you've","we'll","they'll","you'll"
+    ).distinct()
 
     // ── View tree ────────────────────────────────────────────────────────────
 
@@ -226,31 +245,65 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     // ── Word predictions ──────────────────────────────────────────────────────
 
+    /** Default suggestions when the cursor is at a word boundary (nothing being typed). */
+    private val defaultWords = listOf("I", "the", "and")
+
+    /**
+     * Return the partial word the user is currently typing (everything after the
+     * last space/newline) and the number of chars to delete to replace it.
+     */
+    private fun currentPartial(): Pair<String, Int> {
+        val before = currentInputConnection
+            ?.getTextBeforeCursor(400, 0)?.toString() ?: ""
+        if (before.isEmpty()) return "" to 0
+        // If the cursor is right after a space, there's no partial word.
+        if (before.last() == ' ' || before.last() == '\n') return "" to 0
+        val lastSpace = before.lastIndexOfAny(charArrayOf(' ', '\n'))
+        val partial = if (lastSpace >= 0) before.substring(lastSpace + 1) else before
+        return partial to partial.length
+    }
+
+    /**
+     * Find up to 3 predictions matching [prefix]. The prefix is matched case-
+     * insensitively. Words that exactly equal the prefix are skipped so we only
+     * show completions (like a real keyboard).
+     */
+    private fun predictWords(prefix: String): List<String> {
+        if (prefix.isEmpty()) return defaultWords
+        val lower = prefix.lowercase()
+        return wordBank
+            .filter { it.lowercase().startsWith(lower) && !it.equals(prefix, ignoreCase = true) }
+            .take(3)
+    }
+
+    /** Cache for the currently displayed predictions so insertWord can use them. */
+    private var displayedPredictions = defaultWords
+
     private fun updateWordStrip() {
-        val ic = currentInputConnection
-        val before = ic?.getTextBeforeCursor(400, 0)?.toString() ?: ""
-        val lastKey = before.trimEnd().split(Regex("\\s+")).lastOrNull()
-            ?.lowercase()?.take(1) ?: ""
-        val words = wordSets[lastKey] ?: wordSets[""]!!
+        val (partial, _) = currentPartial()
+        val words = predictWords(partial).let {
+            // If no matches, fall back to defaults so the strip is never empty
+            if (it.isEmpty()) defaultWords else it
+        }
+        displayedPredictions = words
 
         // Grammar correction trumps middle chip
         val corr = current
         if (corr != null) {
-            // Left/right chips = predictions; middle = correction (green)
-            wordChip1.text = words[0]
+            wordChip1.text = words.getOrElse(0) { "" }
             wordChip1.setTextColor(color(R.color.text_primary))
 
             wordChip2.text = "\u2713 ${corr.corrected}"
             wordChip2.setTextColor(color(R.color.accent_green))
 
-            wordChip3.text = words[2]
+            wordChip3.text = words.getOrElse(if (words.size > 2) 2 else 1) { "" }
             wordChip3.setTextColor(color(R.color.text_primary))
         } else {
-            wordChip1.text = words[0]
+            wordChip1.text = words.getOrElse(0) { "" }
             wordChip1.setTextColor(color(R.color.text_primary))
-            wordChip2.text = words[1]
+            wordChip2.text = words.getOrElse(1) { "" }
             wordChip2.setTextColor(color(R.color.text_primary))
-            wordChip3.text = words[2]
+            wordChip3.text = words.getOrElse(2) { "" }
             wordChip3.setTextColor(color(R.color.text_primary))
             explanationTv.visibility = View.GONE
         }
@@ -258,16 +311,11 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     private fun insertWord(idx: Int) {
         val ic = currentInputConnection ?: return
-        val before = ic.getTextBeforeCursor(400, 0)?.toString() ?: ""
-        val lastKey = before.trimEnd().split(Regex("\\s+")).lastOrNull()
-            ?.lowercase()?.take(1) ?: ""
-        val words = wordSets[lastKey] ?: wordSets[""]!!
-        // Replace the current partial word with the chosen prediction
-        val trimmed = before.trimEnd()
-        val lastSpace = trimmed.lastIndexOf(' ')
-        val deleteLen = trimmed.length - (if (lastSpace >= 0) lastSpace + 1 else 0)
+        val word = displayedPredictions.getOrNull(idx) ?: return
+        val (_, deleteLen) = currentPartial()
+        // Delete the partial word the user was typing, then commit the full word + space
         if (deleteLen > 0) ic.deleteSurroundingText(deleteLen, 0)
-        ic.commitText(words[idx] + " ", 1)
+        ic.commitText("$word ", 1)
         afterInput()
     }
 

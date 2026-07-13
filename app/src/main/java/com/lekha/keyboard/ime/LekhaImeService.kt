@@ -24,6 +24,12 @@ import com.lekha.keyboard.R
 import com.lekha.keyboard.ai.Rewriter
 import com.lekha.keyboard.engine.Correction
 import com.lekha.keyboard.engine.RuleEngine
+import android.content.Context
+import android.view.textservice.TextServicesManager
+import android.view.textservice.SpellCheckerSession
+import android.view.textservice.SuggestionsInfo
+import android.view.textservice.SentenceSuggestionsInfo
+import android.view.textservice.TextInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,9 +65,13 @@ import kotlinx.coroutines.launch
  *  • When open it shows Gemini rewrite options (+ More / Close row)
  *  • The AI key on the keyboard glows when the panel is open
  */
-class LekhaImeService : InputMethodService(), KeyboardView.Listener {
+class LekhaImeService : InputMethodService(), KeyboardView.Listener, SpellCheckerSession.SpellCheckerSessionListener {
 
     private val engine = RuleEngine()
+
+    private var spellCheckerSession: SpellCheckerSession? = null
+    private var lastCheckedWord: String? = null
+    private var spellCorrections: List<String> = emptyList()
 
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var aiJob: Job? = null
@@ -128,6 +138,14 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
         "wouldn't","that's","it's","what's","there's","here's","let's","he's","she's",
         "we're","they're","you're","we've","they've","you've","we'll","they'll","you'll"
     ).distinct()
+
+    override fun onCreate() {
+        super.onCreate()
+        try {
+            val tsm = getSystemService(Context.TEXT_SERVICES_MANAGER_SERVICE) as TextServicesManager
+            spellCheckerSession = tsm.newSpellCheckerSession(null, null, this, true)
+        } catch (_: Throwable) { }
+    }
 
     // ── View tree ────────────────────────────────────────────────────────────
 
@@ -293,12 +311,40 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     private fun updateWordStrip() {
         val (partial, _) = currentPartial()
-        val words = predictWords(partial).let {
-            if (it.isEmpty()) defaultWords else it
+
+        // 1. Trigger spell check if word changed
+        if (partial.isNotEmpty()) {
+            if (partial != lastCheckedWord) {
+                lastCheckedWord = partial
+                spellCorrections = emptyList()
+                try {
+                    spellCheckerSession?.getSuggestions(TextInfo(partial), 3)
+                } catch (_: Throwable) { }
+            }
+        } else {
+            lastCheckedWord = null
+            spellCorrections = emptyList()
+        }
+
+        // 2. Decide what words to show
+        val words = if (partial.isEmpty()) {
+            defaultWords
+        } else if (spellCorrections.isNotEmpty()) {
+            // Spelling typo corrections from the system dictionary!
+            // primary suggestion in the middle, other corrections on the sides
+            val mid = spellCorrections.getOrNull(0) ?: partial
+            val left = spellCorrections.getOrNull(1) ?: ""
+            val right = spellCorrections.getOrNull(2) ?: ""
+            listOf(left, mid, right)
+        } else {
+            // Standard completions
+            predictWords(partial).let {
+                if (it.isEmpty()) defaultWords else it
+            }
         }
         displayedPredictions = words
 
-        // Grammar correction trumps middle chip
+        // 3. Grammar correction trumps middle chip
         val corr = current
         if (corr != null) {
             wordChip1.text = words.getOrElse(0) { "" }
@@ -313,7 +359,7 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
             wordChip1.text = words.getOrElse(0) { "" }
             wordChip1.setTextColor(color(R.color.text_primary))
 
-            // Middle chip = exact word being typed — shown slightly bolder
+            // Show middle chip (either typed word, autocorrect spelling, or default)
             wordChip2.text = words.getOrElse(1) { "" }
             wordChip2.setTextColor(color(R.color.text_primary))
 
@@ -392,6 +438,9 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     override fun onDestroy() {
         uiScope.cancel()
+        try {
+            spellCheckerSession?.close()
+        } catch (_: Throwable) { }
         super.onDestroy()
     }
 
@@ -683,4 +732,41 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
 
     private fun color(id: Int) = ContextCompat.getColor(this, id)
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    // ── SpellCheckerSession.SpellCheckerSessionListener ──────────────────────
+
+    override fun onGetSuggestions(results: Array<out SuggestionsInfo>?) {
+        val info = results?.firstOrNull() ?: return
+        val word = lastCheckedWord ?: return
+
+        val attributes = info.suggestionsAttributes
+        val isTypo = (attributes and SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO) != 0
+
+        if (isTypo) {
+            val list = mutableListOf<String>()
+            for (i in 0 until info.suggestionsCount) {
+                val suggestion = info.getSuggestionAt(i)
+                if (!suggestion.isNullOrBlank()) {
+                    list.add(suggestion)
+                }
+            }
+            if (list.isNotEmpty()) {
+                spellCorrections = list
+                uiScope.launch(Dispatchers.Main) {
+                    updateWordStrip()
+                }
+            }
+        } else {
+            if (spellCorrections.isNotEmpty()) {
+                spellCorrections = emptyList()
+                uiScope.launch(Dispatchers.Main) {
+                    updateWordStrip()
+                }
+            }
+        }
+    }
+
+    override fun onGetSentenceSuggestions(results: Array<out SentenceSuggestionsInfo>?) {
+        // No-op
+    }
 }

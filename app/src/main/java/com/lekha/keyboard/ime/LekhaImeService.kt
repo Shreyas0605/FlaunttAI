@@ -264,16 +264,28 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * Find up to 3 predictions matching [prefix]. The prefix is matched case-
-     * insensitively. Words that exactly equal the prefix are skipped so we only
-     * show completions (like a real keyboard).
+     * Build predictions like a real keyboard (Gboard-style):
+     *   chip1 = first completion    e.g. "they"
+     *   chip2 = the exact word      e.g. "the"  (middle, bold)
+     *   chip3 = second completion   e.g. "them"
+     *
+     * As each new letter is typed, all three update dynamically.
      */
     private fun predictWords(prefix: String): List<String> {
         if (prefix.isEmpty()) return defaultWords
+
         val lower = prefix.lowercase()
-        return wordBank
+
+        // Find all words that START with what the user is typing
+        val completions = wordBank
             .filter { it.lowercase().startsWith(lower) && !it.equals(prefix, ignoreCase = true) }
-            .take(3)
+
+        // Middle chip = the word itself, sides = completions
+        val left  = completions.getOrNull(0) ?: ""
+        val mid   = prefix                          // exactly what the user typed
+        val right = completions.getOrNull(1) ?: ""
+
+        return listOf(left, mid, right)
     }
 
     /** Cache for the currently displayed predictions so insertWord can use them. */
@@ -282,7 +294,6 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
     private fun updateWordStrip() {
         val (partial, _) = currentPartial()
         val words = predictWords(partial).let {
-            // If no matches, fall back to defaults so the strip is never empty
             if (it.isEmpty()) defaultWords else it
         }
         displayedPredictions = words
@@ -296,13 +307,16 @@ class LekhaImeService : InputMethodService(), KeyboardView.Listener {
             wordChip2.text = "\u2713 ${corr.corrected}"
             wordChip2.setTextColor(color(R.color.accent_green))
 
-            wordChip3.text = words.getOrElse(if (words.size > 2) 2 else 1) { "" }
+            wordChip3.text = words.getOrElse(2) { "" }
             wordChip3.setTextColor(color(R.color.text_primary))
         } else {
             wordChip1.text = words.getOrElse(0) { "" }
             wordChip1.setTextColor(color(R.color.text_primary))
+
+            // Middle chip = exact word being typed — shown slightly bolder
             wordChip2.text = words.getOrElse(1) { "" }
             wordChip2.setTextColor(color(R.color.text_primary))
+
             wordChip3.text = words.getOrElse(2) { "" }
             wordChip3.setTextColor(color(R.color.text_primary))
             explanationTv.visibility = View.GONE

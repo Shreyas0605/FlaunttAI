@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Lekha" parent="Theme.AppCompat.DayNight.DarkActionBar">
+    <style name="Theme.Fluent" parent="Theme.AppCompat.DayNight.DarkActionBar">
         <item name="colorPrimary">@color/brand</item>
         <item name="colorPrimaryDark">@color/brand</item>
     </style>

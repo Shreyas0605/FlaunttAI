@@ -1,0 +1,212 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.phone{width:375px;height:780px;background:#000;border-radius:44px;overflow:hidden;border:2px solid #333;display:flex;flex-direction:column;position:relative}
+.status-bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;background:#111}
+.status-time{color:#fff;font-size:15px;font-weight:600}
+.status-icons{color:#fff;font-size:12px}
+.screen{flex:1;background:#111;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:0 24px 32px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;flex-shrink:0}
+.app-wordmark{font-size:20px;font-weight:700;color:#fff;letter-spacing:0.3px}
+.app-wordmark span{color:#0a84ff}
+.top-icon{width:36px;height:36px;background:#1c1c1e;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:0.5px solid #2c2c2e}
+.top-icon svg{width:18px;height:18px;stroke:#aaa;fill:none;stroke-width:1.8;stroke-linecap:round}
+
+.hero{width:100%;display:flex;flex-direction:column;align-items:center;padding:28px 0 24px;text-align:center}
+.hero-icon{width:68px;height:68px;background:#000;border-radius:18px;border:1.5px solid #2c2c2e;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0}
+.hero-icon-f{font-size:36px;font-weight:800;color:#fff;line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-1px}
+.hero-title{font-size:24px;font-weight:700;color:#fff;margin-bottom:6px}
+.hero-sub{font-size:14px;color:#636366;line-height:1.5;max-width:260px}
+
+.section{width:100%;margin-bottom:20px}
+.section-label{font-size:12px;font-weight:600;color:#636366;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px;padding-left:2px}
+.step-card{width:100%;background:#1c1c1e;border-radius:16px;border:0.5px solid #2c2c2e;overflow:hidden;margin-bottom:12px}
+.step-card-inner{display:flex;align-items:center;gap:14px;padding:16px}
+.step-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.step-num.done{background:#30d15822;color:#30d158}
+.step-num.active{background:#0a84ff22;color:#0a84ff}
+.step-num.idle{background:#2c2c2e;color:#636366}
+.step-text{flex:1}
+.step-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:2px}
+.step-desc{font-size:12px;color:#636366;line-height:1.4}
+.step-arrow svg{width:16px;height:16px;stroke:#3a3a3c;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.step-arrow.active svg{stroke:#0a84ff}
+.step-btn{width:100%;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;cursor:pointer;transition:transform 0.08s ease,background 0.12s}
+.step-btn:active{transform:scale(0.97)}
+.step-btn.primary{background:#0a84ff;color:#fff}
+.step-btn.primary:active{background:#0077ed}
+.step-btn.secondary{background:#1c1c1e;border:0.5px solid #2c2c2e;color:#0a84ff}
+.step-btn.disabled{background:#1c1c1e;border:0.5px solid #2c2c2e;color:#3a3a3c;cursor:default}
+.step-btn.disabled:active{transform:none}
+
+.key-section{width:100%;background:#1c1c1e;border-radius:16px;border:0.5px solid #2c2c2e;padding:16px}
+.key-label{font-size:12px;font-weight:600;color:#636366;letter-spacing:0.6px;text-transform:uppercase;margin-bottom:10px}
+.key-input-wrap{position:relative;width:100%;margin-bottom:14px}
+.key-input{width:100%;height:48px;background:#111;border:0.5px solid #2c2c2e;border-radius:12px;padding:0 44px 0 14px;font-size:14px;color:#fff;outline:none;font-family:inherit;letter-spacing:0.5px;transition:border-color 0.15s}
+.key-input:focus{border-color:#0a84ff}
+.key-input::placeholder{color:#3a3a3c;letter-spacing:0}
+.key-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;display:flex;align-items:center}
+.key-eye svg{width:18px;height:18px;stroke:#636366;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.key-btn-row{display:flex;gap:10px}
+.key-btn{flex:1;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;cursor:pointer;transition:transform 0.08s ease,background 0.12s}
+.key-btn:active{transform:scale(0.96)}
+.key-btn.test{background:#1c1c1e;border:0.5px solid #2c2c2e;color:#fff}
+.key-btn.test:active{background:#2c2c2e}
+.key-btn.save{background:#0a84ff;color:#fff}
+.key-btn.save:active{background:#0077ed}
+.key-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.toast{position:absolute;bottom:56px;left:50%;transform:translateX(-50%) translateY(12px);background:#2c2c2e;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;transition:all 0.22s;pointer-events:none;white-space:nowrap;border:0.5px solid #3a3a3c}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.bottom-bar{height:34px;background:#111;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.home-indicator{width:130px;height:5px;background:#fff;opacity:0.2;border-radius:3px}
+</style>
+
+<div class="phone">
+  <div class="status-bar">
+    <div class="status-time">9:41</div>
+    <div class="status-icons">●●● WiFi 100%</div>
+  </div>
+
+  <div class="screen">
+    <div class="top-bar">
+      <div class="app-wordmark">Fluent<span> AI</span></div>
+      <div class="top-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-icon">
+        <span class="hero-icon-f">F</span>
+      </div>
+      <div class="hero-title">Set up Fluent AI</div>
+      <div class="hero-sub">Two quick steps and your keyboard is ready. Fully offline, no internet needed.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Setup</div>
+
+      <div class="step-card">
+        <div class="step-card-inner">
+          <div class="step-num active" id="num1">1</div>
+          <div class="step-text">
+            <div class="step-title">Enable Fluent AI</div>
+            <div class="step-desc">Go to keyboard settings and enable the keyboard</div>
+          </div>
+          <div class="step-arrow active"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+        <div style="padding:0 16px 16px">
+          <div class="step-btn primary" id="btn1" onclick="completeStep1()">Enable in settings →</div>
+        </div>
+      </div>
+
+      <div class="step-card" id="card2" style="opacity:0.45">
+        <div class="step-card-inner">
+          <div class="step-num idle" id="num2">2</div>
+          <div class="step-text">
+            <div class="step-title">Select Fluent AI</div>
+            <div class="step-desc">Make Fluent AI your default keyboard</div>
+          </div>
+          <div class="step-arrow" id="arrow2"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+        </div>
+        <div style="padding:0 16px 16px">
+          <div class="step-btn disabled" id="btn2">Select keyboard</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">API Key</div>
+      <div class="key-section">
+        <div class="key-label">Enter your key</div>
+        <div class="key-input-wrap">
+          <input class="key-input" id="keyInput" type="password" placeholder="sk-ant-api03-••••••••••••" autocomplete="off" spellcheck="false"/>
+          <div class="key-eye" onclick="toggleVis()">
+            <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+        </div>
+        <div class="key-btn-row">
+          <div class="key-btn test" onclick="testKey()">
+            <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
+            Test key
+          </div>
+          <div class="key-btn save" onclick="saveKey()">
+            <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save key
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="bottom-bar"><div class="home-indicator"></div></div>
+</div>
+
+<script>
+let keyVisible = false;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function completeStep1() {
+  const num1 = document.getElementById('num1');
+  const btn1 = document.getElementById('btn1');
+  const card2 = document.getElementById('card2');
+  const num2 = document.getElementById('num2');
+  const btn2 = document.getElementById('btn2');
+  const arrow2 = document.getElementById('arrow2');
+
+  num1.textContent = '✓';
+  num1.className = 'step-num done';
+  btn1.textContent = '✓ Enabled';
+  btn1.className = 'step-btn secondary';
+  btn1.onclick = null;
+
+  card2.style.opacity = '1';
+  card2.style.transition = 'opacity 0.3s ease';
+  num2.className = 'step-num active';
+  btn2.className = 'step-btn primary';
+  btn2.textContent = 'Select keyboard →';
+  arrow2.className = 'step-arrow active';
+  btn2.onclick = completeStep2;
+  showToast('✓ Step 1 complete');
+}
+
+function completeStep2() {
+  const num2 = document.getElementById('num2');
+  const btn2 = document.getElementById('btn2');
+  num2.textContent = '✓';
+  num2.className = 'step-num done';
+  btn2.textContent = '✓ Selected';
+  btn2.className = 'step-btn secondary';
+  btn2.onclick = null;
+  showToast('🎉 Keyboard is ready!');
+}
+
+function toggleVis() {
+  keyVisible = !keyVisible;
+  document.getElementById('keyInput').type = keyVisible ? 'text' : 'password';
+  document.getElementById('eyeIcon').style.stroke = keyVisible ? '#0a84ff' : '#636366';
+}
+
+function testKey() {
+  const v = document.getElementById('keyInput').value.trim();
+  if (!v) { showToast('⚠️ Enter a key first'); return; }
+  showToast('⚡ Testing key...');
+  setTimeout(() => showToast('✓ Key is valid'), 1400);
+}
+
+function saveKey() {
+  const v = document.getElementById('keyInput').value.trim();
+  if (!v) { showToast('⚠️ Enter a key first'); return; }
+  showToast('💾 Key saved locally');
+}
+</script>

@@ -1,4 +1,4 @@
-package com.lekha.keyboard.engine
+package com.Fluent.keyboard.engine
 
 /** The category of a single fix. The label is what a learner sees; the tag drives explanations. */
 enum class EditTag(val label: String) {

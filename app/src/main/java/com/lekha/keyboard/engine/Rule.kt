@@ -1,4 +1,4 @@
-package com.lekha.keyboard.engine
+package com.Fluent.keyboard.engine
 
 /**
  * A single deterministic correction rule: a pattern, the fix, and why it matters.

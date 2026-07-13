@@ -1,4 +1,4 @@
-package com.lekha.keyboard.ime
+package com.Fluent.keyboard.ime
 
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
@@ -16,11 +16,11 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.lekha.keyboard.MainActivity
-import com.lekha.keyboard.R
-import com.lekha.keyboard.ai.Rewriter
-import com.lekha.keyboard.engine.Correction
-import com.lekha.keyboard.engine.RuleEngine
+import com.Fluent.keyboard.MainActivity
+import com.Fluent.keyboard.R
+import com.Fluent.keyboard.ai.Rewriter
+import com.Fluent.keyboard.engine.Correction
+import com.Fluent.keyboard.engine.RuleEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,13 +29,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * The Lekha keyboard. Two layers of help:
+ * The Fluent keyboard. Two layers of help:
  *   - Instant, offline rule fixes shown as a green suggestion while typing (no network).
  *   - Full AI rewrites via Gemini when the user taps the sparkle, shown as 2-3 tappable
  *     options that replace the whole message. Requires an API key set in the app.
  * Built from plain Views for a reliable build; the engine and Rewriter are UI-agnostic.
  */
-class LekhaImeService : InputMethodService() {
+class FluentImeService : InputMethodService() {
 
     private val engine = RuleEngine()
 
@@ -347,7 +347,7 @@ class LekhaImeService : InputMethodService() {
         aiBusy = true
         showAiThinking()
         aiJob = uiScope.launch {
-            val options = try { Rewriter.rewrite(this@LekhaImeService, full) } catch (t: Throwable) { emptyList() }
+            val options = try { Rewriter.rewrite(this@FluentImeService, full) } catch (t: Throwable) { emptyList() }
             aiBusy = false
             if (options.isEmpty()) showAiMessage(Rewriter.lastError() ?: getString(R.string.ai_failed), showOpenApp = false)
             else showAiOptions(options)

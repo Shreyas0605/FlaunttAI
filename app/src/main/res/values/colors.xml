@@ -1,14 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand">#1B5E20</color>
-    <color name="ic_launcher_background">#000000</color>
+    <!-- App backgrounds -->
+    <color name="bg_deep">#000000</color>
+    <color name="bg_screen">#111111</color>
+    <color name="bg_card">#1c1c1e</color>
+    <color name="bg_pressed">#2c2c2e</color>
+    <color name="divider">#2c2c2e</color>
+    <color name="divider_light">#3a3a3c</color>
 
-    <color name="kb_background">#ECEFF1</color>
-    <color name="kb_key">#FFFFFF</color>
-    <color name="kb_special">#CFD8DC</color>
-    <color name="kb_key_text">#212121</color>
-    <color name="kb_strip_background">#FFFFFF</color>
-    <color name="kb_hint_text">#9E9E9E</color>
-    <color name="kb_accent">#2E7D32</color>
+    <!-- Text -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_hint">#636366</color>
+    <color name="text_inactive">#3a3a3c</color>
+    <color name="text_aaa">#AAAAAA</color>
+
+    <!-- Accents -->
+    <color name="accent_blue">#0a84ff</color>
+    <color name="accent_blue_dim">#1a2a44</color>
+    <color name="accent_green">#30d158</color>
+    <color name="accent_green_dim">#0d2b18</color>
+
+    <!-- Keyboard -->
+    <color name="kb_background">#1c1c1e</color>
+    <color name="kb_key">#3a3a3c</color>
+    <color name="kb_special">#1c1c1e</color>
+    <color name="kb_key_text">#FFFFFF</color>
+    <color name="kb_strip_background">#1c1c1e</color>
+    <color name="kb_hint_text">#636366</color>
+    <color name="kb_accent">#0a84ff</color>
     <color name="kb_accent_text">#FFFFFF</color>
+    <color name="kb_key_border">#555555</color>
+
+    <!-- Legacy / launcher -->
+    <color name="brand">#0a84ff</color>
+    <color name="ic_launcher_background">#000000</color>
 </resources>

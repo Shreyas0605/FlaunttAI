@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.lekha.keyboard"
+    namespace = "com.Fluent.keyboard"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.lekha.keyboard"
+        applicationId = "com.Fluent.keyboard"
         minSdk = 26
         targetSdk = 34
         versionCode = 5

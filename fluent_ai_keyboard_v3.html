@@ -1,0 +1,346 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a2e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.phone{width:375px;height:780px;background:#000;border-radius:44px;overflow:hidden;border:2px solid #333;display:flex;flex-direction:column}
+.screen-top{flex:1;background:#1c1c1e;display:flex;flex-direction:column;min-height:0}
+.status-bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.status-time{color:#fff;font-size:15px;font-weight:600}
+.status-icons{color:#fff;font-size:12px}
+.chat-area{flex:1;padding:16px 12px 8px;display:flex;flex-direction:column;gap:10px;overflow:hidden;min-height:0}
+.msg{max-width:75%;padding:10px 14px;font-size:15px;line-height:1.4}
+.msg-in{background:#2c2c2e;color:#fff;border-radius:18px 18px 18px 4px;align-self:flex-start}
+.msg-out{background:#0a84ff;color:#fff;border-radius:18px 18px 4px 18px;align-self:flex-end}
+
+.word-strip{height:44px;background:#1c1c1e;border-top:0.5px solid #3a3a3c;display:flex;align-items:center;padding:0 4px;gap:0;flex-shrink:0}
+.word-strip-divider{width:0.5px;height:20px;background:#3a3a3c;flex-shrink:0}
+.word-chip{flex:1;height:100%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:#fff;transition:background 0.1s;border-radius:0}
+.word-chip.pressed{background:#2c2c2e}
+
+.ai-panel{height:0;overflow:hidden;background:#2c2c2e;transition:height 0.22s cubic-bezier(0.4,0,0.2,1);flex-shrink:0}
+.ai-panel.open{height:132px}
+.ai-panel-inner{height:132px;display:flex;align-items:center;justify-content:center;border-top:0.5px solid #3a3a3c}
+.ai-panel-label{font-size:13px;color:#555}
+
+.keyboard{background:#1c1c1e;padding:8px 3px 4px;flex-shrink:0}
+.key-row{display:flex;justify-content:center;gap:5px;margin-bottom:9px}
+.key{height:44px;min-width:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:400;color:#fff;cursor:pointer;background:#3a3a3c;transition:transform 0.07s ease}
+.key.pressed{transform:scale(0.91);background:#555}
+.key-dark{background:#1c1c1e;border:0.5px solid #555}
+.key-dark.pressed{background:#3a3a3c;transform:scale(0.91)}
+.key-space{flex:1;max-width:190px}
+.key-ai{min-width:56px;font-size:13px;font-weight:700}
+.key-more{min-width:56px;background:#2c2c2e;flex-direction:column;gap:1px}
+
+.bottom-bar{height:34px;background:#1c1c1e;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.home-indicator{width:130px;height:5px;background:#fff;opacity:0.25;border-radius:3px}
+</style>
+
+<div class="phone">
+  <div class="screen-top">
+    <div class="status-bar">
+      <div class="status-time">9:41</div>
+      <div class="status-icons">●●● WiFi 100%</div>
+    </div>
+    <div class="chat-area" id="chatArea">
+      <div style="text-align:center;color:#636366;font-size:12px;margin-bottom:4px">Today</div>
+      <div class="msg msg-in">Hey! How's the project going?</div>
+      <div class="msg msg-out">ya almost done, just fixing a few things</div>
+      <div class="msg msg-in">Ok cool, let me know 👍</div>
+      <div class="msg msg-out" id="liveMsg" style="white-space:pre-wrap;word-break:break-word">|</div>
+    </div>
+
+    <div class="word-strip" id="wordStrip">
+      <div class="word-chip" id="w1" onclick="insertWord(0)">sure</div>
+      <div class="word-strip-divider"></div>
+      <div class="word-chip" id="w2" onclick="insertWord(1)">okay</div>
+      <div class="word-strip-divider"></div>
+      <div class="word-chip" id="w3" onclick="insertWord(2)">thanks</div>
+    </div>
+  </div>
+
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-inner">
+      <span class="ai-panel-label">AI panel · 3 rows</span>
+    </div>
+  </div>
+
+  <div class="keyboard">
+
+    <!-- QWERTY layer -->
+    <div id="qwertyLayer">
+      <div class="key-row">
+        <div class="key" data-char="q">q</div>
+        <div class="key" data-char="w">w</div>
+        <div class="key" data-char="e">e</div>
+        <div class="key" data-char="r">r</div>
+        <div class="key" data-char="t">t</div>
+        <div class="key" data-char="y">y</div>
+        <div class="key" data-char="u">u</div>
+        <div class="key" data-char="i">i</div>
+        <div class="key" data-char="o">o</div>
+        <div class="key" data-char="p">p</div>
+      </div>
+      <div class="key-row">
+        <div style="width:16px"></div>
+        <div class="key" data-char="a">a</div>
+        <div class="key" data-char="s">s</div>
+        <div class="key" data-char="d">d</div>
+        <div class="key" data-char="f">f</div>
+        <div class="key" data-char="g">g</div>
+        <div class="key" data-char="h">h</div>
+        <div class="key" data-char="j">j</div>
+        <div class="key" data-char="k">k</div>
+        <div class="key" data-char="l">l</div>
+        <div style="width:16px"></div>
+      </div>
+      <div class="key-row">
+        <div class="key key-dark key-wide" id="shiftKey" style="min-width:50px">⇧</div>
+        <div class="key" data-char="z">z</div>
+        <div class="key" data-char="x">x</div>
+        <div class="key" data-char="c">c</div>
+        <div class="key" data-char="v">v</div>
+        <div class="key" data-char="b">b</div>
+        <div class="key" data-char="n">n</div>
+        <div class="key" data-char="m">m</div>
+        <div class="key key-dark" id="delKey" style="min-width:50px">⌫</div>
+      </div>
+      <div class="key-row" style="gap:4px">
+        <div class="key key-dark key-ai" id="numKey" style="min-width:42px;font-size:14px">123</div>
+        <div class="key key-ai key-dark" id="aiBtn">AI</div>
+        <div class="key key-space" id="spaceKey" style="background:#3a3a3c">space</div>
+        <div class="key key-more key-dark" id="moreKey" style="min-width:42px">
+          <span style="font-size:16px;color:#aaa">•••</span>
+          <span style="font-size:9px;color:#666">more</span>
+        </div>
+        <div class="key key-dark" id="returnKey" style="min-width:42px">
+          <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+            <path d="M18 2v5a2 2 0 0 1-2 2H4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M7 6l-3.5 3.5L7 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Number/Symbol layer -->
+    <div id="numLayer" style="display:none">
+      <div class="key-row">
+        <div class="key" data-char="1">1</div>
+        <div class="key" data-char="2">2</div>
+        <div class="key" data-char="3">3</div>
+        <div class="key" data-char="4">4</div>
+        <div class="key" data-char="5">5</div>
+        <div class="key" data-char="6">6</div>
+        <div class="key" data-char="7">7</div>
+        <div class="key" data-char="8">8</div>
+        <div class="key" data-char="9">9</div>
+        <div class="key" data-char="0">0</div>
+      </div>
+      <div class="key-row">
+        <div class="key" data-char="-">-</div>
+        <div class="key" data-char="/">/</div>
+        <div class="key" data-char=":">:</div>
+        <div class="key" data-char=";">;</div>
+        <div class="key" data-char="(">(</div>
+        <div class="key" data-char=")">)</div>
+        <div class="key" data-char="$">$</div>
+        <div class="key" data-char="&amp;">&amp;</div>
+        <div class="key" data-char="@">@</div>
+        <div class="key" data-char='"'>"</div>
+      </div>
+      <div class="key-row">
+        <div class="key key-dark" id="symKey" style="min-width:50px;font-size:13px">#+=</div>
+        <div class="key" data-char=".">.</div>
+        <div class="key" data-char=",">,</div>
+        <div class="key" data-char="?">?</div>
+        <div class="key" data-char="!">!</div>
+        <div class="key" data-char="'">'</div>
+        <div class="key key-dark" id="delKey2" style="min-width:50px">⌫</div>
+      </div>
+      <div class="key-row" style="gap:4px">
+        <div class="key key-dark" id="abcKey" style="min-width:42px;font-size:14px">ABC</div>
+        <div class="key key-ai key-dark" id="aiBtn2">AI</div>
+        <div class="key key-space" id="spaceKey2" style="background:#3a3a3c">space</div>
+        <div class="key key-dark" style="min-width:42px">
+          <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+            <path d="M18 2v5a2 2 0 0 1-2 2H4.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M7 6l-3.5 3.5L7 13" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="bottom-bar"><div class="home-indicator"></div></div>
+</div>
+
+<script>
+let text = '';
+let shifted = false;
+let capsLock = false;
+let numMode = false;
+let panelOpen = false;
+
+const liveMsg = document.getElementById('liveMsg');
+const shiftKey = document.getElementById('shiftKey');
+const qwerty = document.getElementById('qwertyLayer');
+const numLayer = document.getElementById('numLayer');
+const aiPanel = document.getElementById('aiPanel');
+
+const wordSets = {
+  '':   ['sure','okay','thanks'],
+  'i':  ["I'll","I'm","I've"],
+  'a':  ['about','are','after'],
+  'b':  ['be','but','because'],
+  'c':  ['can','could','come'],
+  'd':  ['do','did','don\'t'],
+  'e':  ['even','every','enough'],
+  'f':  ['for','from','fine'],
+  'g':  ['good','great','got'],
+  'h':  ['have','has','hey'],
+  'j':  ['just','join','job'],
+  'k':  ['know','keep','kind'],
+  'l':  ['like','let','later'],
+  'm':  ['me','my','might'],
+  'n':  ['no','not','need'],
+  'o':  ['okay','of','on'],
+  'p':  ['please','pretty','plan'],
+  'r':  ['right','really','ready'],
+  's':  ['so','some','sure'],
+  't':  ['the','that','this'],
+  'u':  ['up','us','until'],
+  'w':  ['with','we','when'],
+  'y':  ['yes','you','yet'],
+};
+
+function updateDisplay() {
+  liveMsg.textContent = text + '|';
+  const last = text.split(/\s+/).pop().toLowerCase().slice(0,1);
+  const words = wordSets[last] || wordSets[''];
+  document.getElementById('w1').textContent = words[0];
+  document.getElementById('w2').textContent = words[1];
+  document.getElementById('w3').textContent = words[2];
+}
+
+function insertChar(ch) {
+  text += ch;
+  if (shifted && !capsLock) {
+    shifted = false;
+    shiftKey.style.background = '';
+    shiftKey.style.color = '#fff';
+    shiftKey.textContent = '⇧';
+    applyCase();
+  }
+  updateDisplay();
+}
+
+function insertWord(idx) {
+  const last = text.split(/\s+/).pop().toLowerCase().slice(0,1);
+  const words = wordSets[last] || wordSets[''];
+  const trim = text.trimEnd();
+  const base = trim.lastIndexOf(' ') >= 0 ? trim.slice(0, trim.lastIndexOf(' ')+1) : '';
+  text = base + words[idx] + ' ';
+  updateDisplay();
+}
+
+function applyCase() {
+  document.querySelectorAll('[data-char]').forEach(k => {
+    const c = k.dataset.char;
+    if (c && c.length === 1 && /[a-z]/i.test(c)) {
+      k.textContent = (shifted || capsLock) ? c.toUpperCase() : c.toLowerCase();
+    }
+  });
+}
+
+function addPressEffect(el) {
+  el.addEventListener('pointerdown', () => el.classList.add('pressed'));
+  el.addEventListener('pointerup',   () => el.classList.remove('pressed'));
+  el.addEventListener('pointerleave',() => el.classList.remove('pressed'));
+}
+
+document.querySelectorAll('.key').forEach(k => addPressEffect(k));
+
+document.querySelectorAll('[data-char]').forEach(k => {
+  k.addEventListener('click', () => {
+    const c = k.dataset.char;
+    const out = (shifted || capsLock) && /^[a-z]$/.test(c) ? c.toUpperCase() : c;
+    insertChar(out);
+  });
+});
+
+let lastShiftTap = 0;
+shiftKey.addEventListener('click', () => {
+  const now = Date.now();
+  if (now - lastShiftTap < 300) {
+    capsLock = true; shifted = false;
+    shiftKey.style.background = '#1c1c1e';
+    shiftKey.style.color = '#0a84ff';
+    shiftKey.textContent = '⇪';
+  } else if (capsLock) {
+    capsLock = false; shifted = false;
+    shiftKey.style.background = '';
+    shiftKey.style.color = '#fff';
+    shiftKey.textContent = '⇧';
+  } else {
+    shifted = !shifted;
+    shiftKey.style.background = shifted ? '#1c1c1e' : '';
+    shiftKey.style.color = shifted ? '#0a84ff' : '#fff';
+    shiftKey.textContent = '⇧';
+  }
+  lastShiftTap = now;
+  applyCase();
+});
+
+function doDelete(id) {
+  document.getElementById(id).addEventListener('click', () => {
+    text = text.slice(0, -1);
+    updateDisplay();
+  });
+}
+doDelete('delKey');
+doDelete('delKey2');
+
+function doSpace(id) {
+  document.getElementById(id).addEventListener('click', () => {
+    insertChar(' ');
+  });
+}
+doSpace('spaceKey');
+doSpace('spaceKey2');
+
+document.getElementById('returnKey').addEventListener('click', () => {
+  text += '\n';
+  updateDisplay();
+});
+
+function doAI(id) {
+  document.getElementById(id).addEventListener('click', () => {
+    panelOpen = !panelOpen;
+    aiPanel.classList.toggle('open', panelOpen);
+    const color = '#1c1c1e';
+    document.getElementById('aiBtn').style.background  = panelOpen ? '#3a3a3c' : color;
+    document.getElementById('aiBtn2').style.background = panelOpen ? '#3a3a3c' : color;
+  });
+}
+doAI('aiBtn');
+doAI('aiBtn2');
+
+document.getElementById('numKey').addEventListener('click', () => {
+  numMode = true;
+  qwerty.style.display = 'none';
+  numLayer.style.display = 'block';
+});
+document.getElementById('abcKey').addEventListener('click', () => {
+  numMode = false;
+  numLayer.style.display = 'none';
+  qwerty.style.display = 'block';
+});
+document.getElementById('symKey').addEventListener('click', () => {});
+document.getElementById('moreKey').addEventListener('click', () => {});
+
+[document.getElementById('w1'),document.getElementById('w2'),document.getElementById('w3')].forEach(w => {
+  addPressEffect(w);
+});
+
+updateDisplay();
+</script>

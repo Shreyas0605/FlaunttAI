@@ -1,4 +1,4 @@
-package com.lekha.keyboard.ai
+package com.Fluent.keyboard.ai
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +19,7 @@ import java.net.URL
  */
 object Rewriter {
 
-    private const val PREFS = "lekha_prefs"
+    private const val PREFS = "Fluent_prefs"
     private const val KEY_API = "gemini_api_key"
     private const val MODEL = "gemini-2.5-flash"
     private const val ENDPOINT =

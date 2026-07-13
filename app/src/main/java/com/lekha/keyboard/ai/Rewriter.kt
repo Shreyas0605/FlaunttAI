@@ -117,6 +117,7 @@ object Rewriter {
         val sb = StringBuilder()
         sb.append("Rewrite the message below in correct, natural, friendly English for someone ")
         sb.append("whose first language is Kannada. Keep the same meaning and a warm, casual tone. ")
+        sb.append("Produce corrected sentences in natural, human English rather than textbook style or robotic English. ")
         sb.append("Do not add new facts. ")
         if (exclude.isNotEmpty()) {
             sb.append("Give 3 options that are clearly DIFFERENT in wording from these already-shown ones:\n")

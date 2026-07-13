@@ -1,4 +1,4 @@
-package com.Fluent.keyboard
+package com.lekha.keyboard
 
 import android.animation.ObjectAnimator
 import android.content.Intent
@@ -25,7 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
-import com.Fluent.keyboard.ai.Rewriter
+import com.lekha.keyboard.ai.Rewriter
 import kotlinx.coroutines.launch
 
 /**

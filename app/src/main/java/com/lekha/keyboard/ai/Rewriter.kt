@@ -1,4 +1,4 @@
-package com.Fluent.keyboard.ai
+package com.lekha.keyboard.ai
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers

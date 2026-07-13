@@ -1,4 +1,4 @@
-package com.Fluent.keyboard.engine
+package com.lekha.keyboard.engine
 
 /** Tier 0: character-level fixes. Fast, universal, no grammar knowledge needed. */
 internal object CharRules {
